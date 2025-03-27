@@ -1,0 +1,48 @@
+To create masternode
+kubeadm init --apiserver-advertise-address $(hostname -i) --pod-network-cidr 10.5.0.0/16
+
+TO create network dependencies
+kubectl apply -f https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml
+
+Joining  a node to master(run this in another server which we want to make a worker node, below cmd we will get once we init the master)
+kubeadm join 192.168.0.18:6443 --token ifod7t.udlcv46pd08zftky --discovery-token-ca-cert-hash sha256:920ef28ff78f10cb9886fb348021d84c0efe49c43d9037da48bef6497ca97821
+kubeadm join 192.168.0.23:6443 --token uln4p0.iuam9vfbg1m9ixyg --discovery-token-ca-cert-hash sha256:041ddbef4173520400b519af0a70bee1187367c21c7b4902aa7b5b1296bf52f6
+
+(by using below cmd we can get join cmd again)
+kubeadm token create
+kubeadm token create --print-join-command
+
+troubleshoot
+mv /etc/kubernetes/kubelet.conf /etc/kubernetes/admin.conf  (if we get localhost error in worker node)
+
+Create a pod (https://docker-community-leaders.github.io/dockercommunity/docs/communityleaders/eventhandbooks/kube101/replicaset101/)
+kubectl apply -f nginx_replicaset.yaml (specify the image details in a yaml and create)
+kubectl create deployment firstimage --image=billav/webserver-image:v1 ( without using yaml directly providing image)
+
+cluster IP, enabling service 
+kubectl expose deployment first-deployment --port=8080 
+
+Removing a pod from replicaset
+kubectl edit pods web-44cjb
+
+Scaling manually
+kubectl scale --replicas=5 -f nginx_replicaset.yaml  (if we have yaml)
+kubectl scale --replicas=5 deployment/firstimage     (if we have deployment)
+kubectl autoscale rs web --max=5 (Scaling auto (HPA) based on CPU it increases up to 5)
+
+kubectl get pods -o wide
+kubectl get nodes -o wide
+kubectl get svc -o wide
+kubectl cluster-info
+
+DOCKER:
+sudo yum install epel-release
+sudo yum install nginx
+/usr/share/nginx/html/index.html
+[FROM nginx:alpine
+COPY . /usr/share/nginx/html ]
+docker build -t webserver-image:v1 .
+docker run -d -p 80:80 webserver-image:v1
+docker login
+docker tag bmi:v1 tericcabrel/bmi-demo:v1
+docker push tericcabrel/bmi-demo:v1
