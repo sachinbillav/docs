@@ -1,0 +1,159 @@
+# Heimdall related configuration
+# Increase replica count to accommodate more load
+# Ensure repository & tag values are correctly set
+heimdall:
+  replicaCount: 2
+  url: http://heimdall:8999
+  repository: sum-heimdall
+  tag: v1
+  pullPolicy: Never
+
+# Chrome Agent related configuration
+# Ensure repository & tag values are appropriately set
+chromeAgent:
+  repository: sum-chrome-agent
+  tag: v1
+  browserVersion: 86
+
+# API Monitoring Agent related configuration
+# Ensure repository & tag values are appropriately set
+apiMonitoringAgent:
+  repository: sum-api-monitoring-agent
+  tag: v1
+
+# When using self-managed private registry, set this to true to include the imagePullSecrets in the service account
+# used by heimdall deployment. This will allow heimdall deployment to pull images from your private registry.
+# Ensure you've a secret named 'regcred' in the same namespace before setting this true. You can create the secret in
+# the measurement namespace by -
+#
+# kubectl create secret docker-registry regcred --docker-server=<REGISTRY_HOST>:<REGISTRY_PORT> \
+#  --docker-username=<your-name> \
+#  --docker-password=<your-pword>  \
+#  --docker-email=<your-email> \
+#  --namespace measurement
+
+# The agent container uses default service account so we need to patch the default service account and include the
+# imagePullSecrets there. You can patch the default service account for measurement namespace by -
+#
+# kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "regcred"}]}' --namespace measurement
+privateRegistry: false
+
+# Database connection details
+# By default, this refers to the postgres database running inside the same namespace
+# If you're planning on using your own database, change the values accordingly
+databaseConfig:
+  host: postgres
+  port: 5432
+  database: synthuser
+  username: synthuser
+  password: synthuser
+  pool:
+    initialSize: 10
+    maxSize: 50
+    maxIdleTime: 30m
+    validationQuery: SELECT 1
+
+# Postgres related configuration
+# If you don't want to use the default postgres database running inside the cluster, set enable to false to prevent
+# its deployment. Update the database connection details above to point to your database instance
+postgres:
+  enable: true
+  capacity: '10Gi'
+
+# Namespace to install resources to
+namespace: measurement
+
+# Resources related configuration
+# min_cpu & min_mem refers to the requests and max_cpu & max_mem refers to the limits
+heimdallResources:
+  min_cpu: "1"
+  max_cpu: "2"
+  min_mem: 5Gi
+  max_mem: 5Gi
+
+chromeAgentResources:
+  min_cpu: "0.5"
+  max_cpu: "1.25"
+  min_mem: 1024Mi
+  max_mem: 2048Mi
+
+apiMonitoringAgentResources:
+  min_cpu: "0.1"
+  max_cpu: "0.1"
+  min_mem: "100Mi"
+  max_mem: "250Mi"
+  ingressBandwidth: "256k"
+  egressBandwidth: "256k"
+
+postgresResources:
+  min_cpu : "4"
+  max_cpu: "4"
+  min_mem: 8Gi
+  max_mem: 8Gi
+
+# Node selector for heimdall
+# Allow heimdall pods to get scheduled on specific nodes by labelling the nodes and specifying the labels here
+heimdallNodeSelector: {}
+
+# Node selector for agent
+# The labels keys are fixed for the agent. You need to label all the nodes on which you want agent jobs to run with
+# worker & role keys. Set enable to true for using agentNodeSelector
+agentNodeSelector:
+  enable: false
+  worker: main-a1
+  role: app
+
+# Logging related configuration
+# Level could be ERROR, WARN, INFO, DEBUG, or TRACE
+logging:
+  level: DEBUG
+
+# Prometheus related configuration
+# If you've installed monitoring, this points to the prometheus service running in monitoring namespace
+prometheus:
+  url: "http://psa-monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+
+# Probes configuration
+probes:
+  enabled: true
+
+# Proxy configuration
+# Proxy can be enabled separately for each component - Heimdall, API Monitoring Agent and Browser (Chrome) Monitoring Agent
+# If required, a different proxy server can be specified for each component.
+#
+# When enabled for a component, the HTTP Proxy Server will be used only by that component.
+# server should be of the format - <scheme>://<host>:<port>
+# scheme can be http or https
+proxy:
+  heimdall:
+    enabled: true
+    server: "http://10.235.54.9:8080"
+  apiMonitoringAgent:
+    enabled: true
+    server: "http://10.235.54.9:8080"
+  browserMonitoringAgent:
+    enabled: true
+    server: "http://10.235.54.9:8080"
+
+# Shepherd related configuration
+# Update shepherd url, credentials, & registration location details
+shepherd:
+  url: "https://syd-synthetic.eum-appdynamics.com"
+  credentials:
+    eumAccount: "WiproLimited-a0Q2H00000GQMzIUAX"
+    eumKey: "19db44f0-0051-4119-a79b-1e9e3f6009a4"
+  location:
+    code: "BANG001"
+    name: "DataCenter01"
+    city: "Bangalore"
+    state: "KA"
+    country: "IN"
+    latitude: "0.0"
+    longitude: "0.0"
+
+# Grace Period Before Cleaning Up Jobs
+cleanupGracePeriodInMinutes: 5
+
+#Ignite devmode for K8s env should be false
+ignite:
+  devmode: true
